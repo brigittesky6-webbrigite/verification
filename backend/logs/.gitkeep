@@ -1,0 +1,8 @@
+# Logs Folder
+
+Application logs will be stored here.
+
+- `combined.log` - All logs
+- `error.log` - Errors only
+
+These files are created automatically when the application starts.

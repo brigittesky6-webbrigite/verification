@@ -1,0 +1,7 @@
+# Migrations Folder
+
+This folder will contain Prisma migrations.
+
+Run `npx prisma migrate dev --name init` to create the first migration.
+
+Migrations are automatically generated from changes to `schema.prisma`.

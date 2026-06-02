@@ -1,0 +1,142 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ ENUMS ============
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum RequestStatus {
+  EN_ATTENTE
+  VALIDEE
+  REFUSEE
+}
+
+enum ProductType {
+  TICKET_PAIEMENT
+  CARTE_CADEAU
+  CARTE_BANCAIRE
+}
+
+// ============ MODELS ============
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  username           String    @unique
+  password           String    // Bcrypt hashed
+  firstName          String?
+  lastName           String?
+  phone              String?
+  role               UserRole  @default(USER)
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  lastLogin          DateTime?
+
+  // Relations
+  validationRequests ValidationRequest[]
+  auditLogs          AuditLog[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model Brand {
+  id                 String    @id @default(cuid())
+  name               String    @unique
+  productType        ProductType
+  isActive           Boolean   @default(true)
+  description        String?
+  logoUrl            String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  createdBy          String
+
+  // Relations
+  validationRequests ValidationRequest[]
+
+  @@unique([name, productType])
+  @@index([productType])
+  @@map("brands")
+}
+
+model ValidationRequest {
+  id                 String    @id @default(cuid())
+  code               String    @db.Text // Encrypted code
+  codeHash           String    @unique // Hash for uniqueness check
+  status             RequestStatus @default(EN_ATTENTE)
+  userId             String
+  brandId            String
+  productType        ProductType
+  submissionDate     DateTime  @default(now())
+  validationDate     DateTime?
+  comments           String?   @db.Text
+  rejectionReason    String?   @db.Text
+  expiresAt          DateTime? // For reminder cron
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brand              Brand     @relation(fields: [brandId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([status])
+  @@index([brandId])
+  @@index([productType])
+  @@index([submissionDate])
+  @@index([expiresAt])
+  @@map("validation_requests")
+}
+
+model AuditLog {
+  id                 String    @id @default(cuid())
+  action             String    // CREATE, UPDATE, DELETE, VALIDATE, REJECT
+  entityType         String    // USER, VALIDATION_REQUEST, BRAND
+  entityId           String
+  userId             String
+  changes            String?   @db.Text // JSON string of changes
+  ipAddress          String?
+  userAgent          String?
+  createdAt          DateTime  @default(now())
+
+  // Relations
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model EmailLog {
+  id                 String    @id @default(cuid())
+  to                 String
+  subject            String
+  type               String    // STATUS_CHANGE, REMINDER, ADMIN_NOTIFICATION
+  relatedEntityId    String?
+  status             String    // SENT, FAILED
+  error              String?
+  createdAt          DateTime  @default(now())
+
+  @@index([to])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_logs")
+}
