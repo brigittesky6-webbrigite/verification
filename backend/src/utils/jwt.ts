@@ -9,15 +9,15 @@ export interface JWTPayload {
 
 export class JWTService {
   static sign(payload: JWTPayload): string {
-    return jwt.sign(payload, config.jwtSecret, {
-      expiresIn: config.jwtExpiry,
+    return jwt.sign(payload, config.jwtSecret as jwt.Secret, {
+      expiresIn: config.jwtExpiry as string,
       algorithm: 'HS256',
     });
   }
 
   static verify(token: string): JWTPayload {
     try {
-      return jwt.verify(token, config.jwtSecret, {
+      return jwt.verify(token, config.jwtSecret as jwt.Secret, {
         algorithms: ['HS256'],
       }) as JWTPayload;
     } catch (error) {
